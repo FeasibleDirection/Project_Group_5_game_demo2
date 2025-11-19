@@ -158,14 +158,6 @@ function handleServerMessage(msg) {
             console.log('Successfully joined game:', msg);
             break;
 
-        case 'NOT_IN_ROOM':
-            console.error('[NOT_IN_ROOM]', msg.message);
-            alert(msg.message + '\n\n请先在大厅点击 "Start (Arch A)" 按钮');
-            // ⚠️ 加一个 fromGameError=1，告诉 lobby：这次是失败返回
-            window.location.href = '/lobby.html?fromGameError=1';
-            break;
-            break;
-
         case 'GAME_STATE': {
             console.log(
                 '[GAME_STATE]',
@@ -209,6 +201,12 @@ function handleServerMessage(msg) {
             if (msg.message && msg.message.includes('Not in room')) {
                 window.location.href = '/lobby.html?fromGameError=1';
             }
+            break;
+        case 'NOT_IN_ROOM':
+            console.error('[NOT_IN_ROOM]', msg.message);
+            alert(msg.message + '\n\n请先在大厅点击 "Start (Arch A)" 按钮');
+            // 加一个 fromGameError=1，告诉 lobby：这次是失败返回
+            window.location.href = '/lobby.html?fromGameError=1';
             break;
 
         default:

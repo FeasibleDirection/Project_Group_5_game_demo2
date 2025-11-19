@@ -177,11 +177,17 @@ function handleServerMessageB(msg) {
         case 'ERROR':
             console.error('[ArchB] ERROR', msg.message);
             alert('Arch B Error: ' + msg.message);
+            // 🔥 错误返回大厅，带上标记防止无限跳转
+            if (msg.message && msg.message.includes('Not in room')) {
+                window.location.href = '/lobby.html?fromGameError=1';
+            }
             break;
 
         case 'NOT_IN_ROOM':
-            alert(msg.message || 'Not in room');
-            window.location.href = '/lobby.html';
+            console.error('[ArchB] NOT_IN_ROOM', msg.message);
+            alert((msg.message || 'Not in room') + '\n\n请先在大厅点击 "Start" 按钮');
+            // 🔥 错误返回大厅，带上标记防止无限跳转
+            window.location.href = '/lobby.html?fromGameError=1';
             break;
     }
 }
@@ -242,7 +248,8 @@ function leaveGameB() {
         ws.send(JSON.stringify({ type: 'LEAVE_GAME' }));
         ws.close();
     }
-    window.location.href = '/lobby.html';
+    // 🔥 主动退出，带上标记防止无限跳转
+    window.location.href = '/lobby.html?fromGameExit=1';
 }
 
 // --- 客户端输入上报（所有玩家都发 LOCKSTEP_INPUT） ---

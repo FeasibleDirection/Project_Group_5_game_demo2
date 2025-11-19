@@ -1,5 +1,6 @@
 package com.projectgroup5.gamedemo.controller;
 
+
 import com.projectgroup5.gamedemo.dto.CreateRoomRequest;
 import com.projectgroup5.gamedemo.dto.LobbySlotDto;
 import com.projectgroup5.gamedemo.dto.GameRoomConfigDto;
@@ -9,9 +10,12 @@ import com.projectgroup5.gamedemo.game.GameRoomManager;
 import com.projectgroup5.gamedemo.service.AuthService;
 import com.projectgroup5.gamedemo.service.GameMode;
 import com.projectgroup5.gamedemo.service.LobbyService;
+import com.projectgroup5.gamedemo.websocket.GameWebSocketHandlerB;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +28,8 @@ public class LobbyController {
     private final LobbyService lobbyService;
     private final AuthService authService;
     private final GameRoomManager gameRoomManager;
+
+    private static final Logger logger = LoggerFactory.getLogger(LobbyController.class);
 
     public LobbyController(LobbyService lobbyService, 
                           AuthService authService,
@@ -139,7 +145,7 @@ public class LobbyController {
         return ResponseEntity.ok(room);
     }
     
-    // 房主点击开始 - Architecture B（P2P Lockstep）- 未来实现
+    // 房主点击开始 - Architecture B（P2P Lockstep）
     @PostMapping("/rooms/{roomId}/start-architecture-b")
     public ResponseEntity<?> startGameArchitectureB(
             @RequestHeader(name = "Authorization", required = false) String authHeader,
@@ -157,9 +163,12 @@ public class LobbyController {
                     .body("Cannot start game (not owner or someone not ready).");
         }
         
-        // TODO: 实现Architecture B (P2P)
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body("Architecture B (P2P) not yet implemented");
+        // ★ Architecture B (P2P Lockstep)
+        // 游戏逻辑在Host客户端运行，服务器只负责中转消息
+        // GameWebSocketHandlerB 会处理所有P2P通信
+        logger.info("Starting game (Architecture B) for room {}, owner: {}", roomId, username);
+        
+        return ResponseEntity.ok(room);
     }
 
     // 工具函数

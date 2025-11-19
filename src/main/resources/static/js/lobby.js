@@ -6,6 +6,7 @@ let lobbyAutoRefreshTimer = null;
 let lobbyAutoRefreshing = false;
 let currentUser = null;
 let currentRoomId = null; // 当前用户所在的房间 id（如果有）
+let allowAutoEnterGame = true; // 🔥 是否允许自动进入游戏（防止无限跳转）
 
 function startAutoRefreshLobby() {
     if (lobbyAutoRefreshTimer !== null) return;
@@ -24,6 +25,15 @@ function startAutoRefreshLobby() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // 🔥 检查URL参数：如果从游戏页面错误返回或主动退出，禁用自动跳转
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('fromGameError') || urlParams.has('fromGameExit')) {
+        allowAutoEnterGame = false;
+        console.log('[LOBBY] 禁用自动进入游戏（从游戏页面返回）');
+        // 清除URL参数，避免刷新后仍然禁用
+        window.history.replaceState({}, document.title, '/lobby.html');
+    }
+
     // 先检查登录状态
     try {
         const user = await validateToken(); // 来自 session.js
@@ -251,7 +261,11 @@ function applyLobbySlots(slots) {
                 const btnEnter = document.createElement('button');
                 btnEnter.textContent = '进入游戏';
                 btnEnter.className = 'btn-primary';
-                btnEnter.onclick = () => enterGame(room.roomId, room.winMode, 'A'); // 默认 Arch A
+                // 🔥 手动点击"进入游戏"按钮时，重新允许自动跳转
+                btnEnter.onclick = () => {
+                    allowAutoEnterGame = true;
+                    enterGame(room.roomId, room.winMode, 'A');
+                };
 
                 const btnLeave = document.createElement('button');
                 btnLeave.textContent = '退出';
@@ -278,8 +292,9 @@ function applyLobbySlots(slots) {
         bodyEl.appendChild(btnBox);
     }
 
-    // 如果房间已经开始，并且自己在里面 -> 自动跳转 game.html
-    if (shouldEnterGame && enterRoomId !== null) {
+    // 🔥 只在允许自动跳转时才执行（防止从游戏错误返回后无限循环）
+    if (shouldEnterGame && enterRoomId !== null && allowAutoEnterGame) {
+        console.log('[LOBBY] 自动进入游戏 roomId:', enterRoomId);
         enterGame(enterRoomId);
     }
 }
@@ -377,12 +392,19 @@ async function startGameArchitectureA(roomId, winMode) {
         if (!resp.ok) {
             console.error('start game (Arch A) failed', await resp.text());
             alert('无法开始游戏（Architecture A）');
+            // 🔥 开始失败，禁用自动跳转
+            allowAutoEnterGame = false;
         } else {
+            // 🔥 开始成功，允许自动跳转
+            allowAutoEnterGame = true;
+            console.log('[LOBBY] 开始游戏成功，跳转到 game.html');
             // 房主立即跳转到Architecture A游戏
             enterGame(roomId, winMode, 'A');
         }
     } catch (e) {
         console.error('startGameArchitectureA error', e);
+        alert('网络错误，无法开始游戏');
+        allowAutoEnterGame = false;
     }
 }
 
@@ -395,11 +417,18 @@ async function startGameArchitectureB(roomId, winMode) {
         if (!resp.ok) {
             const text = await resp.text();
             alert('Architecture B 未实现：' + text);
+            // 🔥 开始失败，禁用自动跳转
+            allowAutoEnterGame = false;
         } else {
+            // 🔥 开始成功，允许自动跳转
+            allowAutoEnterGame = true;
+            console.log('[LOBBY] 开始游戏成功（Arch B），跳转到 game.html');
             enterGame(roomId, winMode, 'B');
         }
     } catch (e) {
         console.error('startGameArchitectureB error', e);
+        alert('网络错误，无法开始游戏');
+        allowAutoEnterGame = false;
     }
 }
 
