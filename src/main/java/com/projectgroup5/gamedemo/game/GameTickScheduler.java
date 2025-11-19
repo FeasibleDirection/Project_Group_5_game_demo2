@@ -125,26 +125,49 @@ public class GameTickScheduler {
         }
     }
 
-    /** 胜利条件：你原来 winMode 的那一套逻辑 */
+    /** 胜利条件：检查分数/时间目标以及玩家存活状态 */
     private boolean checkWinCondition(GameWorld world) {
+        // 🔥 首先检查：所有玩家是否都死了
+        long aliveCount = world.getPlayers().values().stream()
+                .filter(p -> p.alive).count();
+        
+        if (aliveCount == 0) {
+            // 所有玩家都死了，游戏结束
+            logger.info("Game {} ends: all players dead", world.getRoomId());
+            return true;
+        }
+        
         String winMode = world.getWinMode();
 
+        // 检查分数目标
         if (winMode.startsWith("SCORE_")) {
             int targetScore = Integer.parseInt(winMode.substring(6));
-            return world.getPlayers().values().stream()
-                    .anyMatch(p -> p.score >= targetScore);
+            boolean hasWinner = world.getPlayers().values().stream()
+                    .anyMatch(p -> p.score >= targetScore && p.alive);
+            if (hasWinner) {
+                logger.info("Game {} ends: score target reached", world.getRoomId());
+                return true;
+            }
         }
 
+        // 检查时间目标
         if (winMode.startsWith("TIME_")) {
             String timeStr = winMode.substring(5);
             int minutes = Integer.parseInt(timeStr.substring(0, timeStr.length() - 1));
             long elapsed = System.currentTimeMillis() - world.getGameStartTime();
-            return elapsed >= minutes * 60 * 1000L;
+            if (elapsed >= minutes * 60 * 1000L) {
+                logger.info("Game {} ends: time limit reached", world.getRoomId());
+                return true;
+            }
         }
 
-        long alive = world.getPlayers().values().stream()
-                .filter(p -> p.alive).count();
-        return alive <= 1;
+        // 多人模式：只剩1人存活时结束（该玩家获胜）
+        if (world.getMaxPlayers() > 1 && aliveCount == 1) {
+            logger.info("Game {} ends: only 1 player alive", world.getRoomId());
+            return true;
+        }
+
+        return false;
     }
 
     /** 结束游戏 + 写 GameLog + 通知 Lobby + 延迟清理 GameWorld */
