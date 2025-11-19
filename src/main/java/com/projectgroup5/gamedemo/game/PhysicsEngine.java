@@ -32,6 +32,13 @@ public class PhysicsEngine {
      * 应用玩家输入到速度
      */
     public void applyPlayerInput(PlayerEntity player, PlayerInput input) {
+//        // 🔥 HP为0的玩家，不再接受输入
+//        if (!player.alive || player.hp <= 0) {
+//            player.velocityX = 0;
+//            player.velocityY = 0;
+//            return;
+//        }
+        
         double vx = 0, vy = 0;
         
         if (input.isMoveUp()) vy -= 1;

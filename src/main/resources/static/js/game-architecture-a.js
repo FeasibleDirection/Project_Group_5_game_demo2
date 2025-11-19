@@ -5,6 +5,7 @@
 let lastHp = null;           // 用来检测自己是否刚刚掉血
 let hitFlashEndTime = 0;     // 自己飞机闪烁的结束时间戳
 let explosionEffects = [];   // 刚刚爆掉石头的爆炸特效 [{x, y, endTime}]
+let gameEndHandled = false;  // 🔥 游戏结束是否已处理（防止重复跳转）
 
 const CANVAS_WIDTH = 480;
 const CANVAS_HEIGHT = 640;
@@ -189,6 +190,15 @@ function handleServerMessage(msg) {
                     });
                 }
             });
+
+            // 🔥 检测游戏结束，自动跳转到大厅
+            if (msg.phase === 'FINISHED' && !gameEndHandled) {
+                gameEndHandled = true;
+                console.log('[GAME_END] Game finished, returning to lobby in 3 seconds...');
+                setTimeout(() => {
+                    window.location.href = '/lobby.html?fromGameExit=1';
+                }, 3000);
+            }
 
             updateUI();
             break;

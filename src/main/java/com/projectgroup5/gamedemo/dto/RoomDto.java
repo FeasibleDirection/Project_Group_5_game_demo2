@@ -13,6 +13,7 @@ public class RoomDto {
 
     private boolean started;                // 游戏是否已经开始
     private String architecture;            // 架构模式：A 或 B
+    private int gameSessionId;              // 🔥 游戏局数ID，每开始一局游戏+1
     private List<PlayerInfoDto> players;           // 按顺序：第一个是房主
     private List<String> readyUsernames;    // 已准备的玩家
 
@@ -102,5 +103,13 @@ public class RoomDto {
 
     public void setArchitecture(String architecture) {
         this.architecture = architecture;
+    }
+
+    public int getGameSessionId() {
+        return gameSessionId;
+    }
+
+    public void setGameSessionId(int gameSessionId) {
+        this.gameSessionId = gameSessionId;
     }
 }

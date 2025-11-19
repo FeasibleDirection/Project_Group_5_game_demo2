@@ -7,6 +7,7 @@ let lobbyAutoRefreshing = false;
 let currentUser = null;
 let currentRoomId = null; // 当前用户所在的房间 id（如果有）
 let allowAutoEnterGame = true; // 🔥 是否允许自动进入游戏（防止无限跳转）
+let lastGameSessionId = -1; // 🔥 记录上一次的游戏局数ID，用于检测"新游戏开始"
 
 function startAutoRefreshLobby() {
     if (lobbyAutoRefreshTimer !== null) return;
@@ -170,6 +171,15 @@ function applyLobbySlots(slots) {
         // 记录当前房间 ID，用于控制"只能加入一个房间"
         if (isInRoom) {
             currentRoomId = room.roomId;
+            
+            // 🔥 检测游戏局数ID变化：gameSessionId > lastGameSessionId = 新游戏开始
+            const currentSessionId = room.gameSessionId || 0;
+            if (currentSessionId > lastGameSessionId && lastGameSessionId >= 0) {
+                console.log('[LOBBY] 检测到新游戏开始（session', lastGameSessionId, '→', currentSessionId, '），重新允许自动跳转');
+                allowAutoEnterGame = true;
+            }
+            lastGameSessionId = currentSessionId;
+            
             if (room.started) {
                 shouldEnterGame = true;
                 enterRoomId = room.roomId;
@@ -266,10 +276,11 @@ function applyLobbySlots(slots) {
                 const btnEnter = document.createElement('button');
                 btnEnter.textContent = '进入游戏';
                 btnEnter.className = 'btn-primary';
-                // 🔥 手动点击"进入游戏"按钮时，重新允许自动跳转
+                // 🔥 手动点击"进入游戏"按钮时，重新允许自动跳转，并使用正确的架构模式
                 btnEnter.onclick = () => {
                     allowAutoEnterGame = true;
-                    enterGame(room.roomId, room.winMode, 'A');
+                    const arch = room.architecture || 'A';
+                    enterGame(room.roomId, room.winMode, arch);
                 };
 
                 const btnLeave = document.createElement('button');

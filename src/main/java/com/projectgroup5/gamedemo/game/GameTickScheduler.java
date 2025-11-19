@@ -161,11 +161,12 @@ public class GameTickScheduler {
             }
         }
 
+        // 🔥 注释掉"只剩1人"逻辑：用户要求所有人HP=0才结束
         // 多人模式：只剩1人存活时结束（该玩家获胜）
-        if (world.getMaxPlayers() > 1 && aliveCount == 1) {
-            logger.info("Game {} ends: only 1 player alive", world.getRoomId());
-            return true;
-        }
+        // if (world.getMaxPlayers() > 1 && aliveCount == 1) {
+        //     logger.info("Game {} ends: only 1 player alive", world.getRoomId());
+        //     return true;
+        // }
 
         return false;
     }

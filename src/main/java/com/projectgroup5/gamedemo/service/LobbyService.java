@@ -36,11 +36,14 @@ public class LobbyService {
 
         // 玩家列表（第一个一定是房主）
         public LinkedHashSet<String> players = new LinkedHashSet<>();
-        // 已经点了“准备”的玩家（房主不用准备）
+        // 已经点了"准备"的玩家（房主不用准备）
         public Set<String> readyPlayers = new HashSet<>();
 
         // ★ 新增：当前房间使用的架构模式 (A / B)
         public GameMode mode = GameMode.ARCH_A;
+        
+        // 🔥 新增：游戏局数ID，每次开始新游戏时+1，用于前端检测"新游戏开始"
+        public int gameSessionId = 0;
     }
 
     private final Room[] tables = new Room[TABLE_COUNT];
@@ -137,6 +140,10 @@ public class LobbyService {
 
         room.mode = mode != null ? mode : GameMode.ARCH_A;
         room.started = true;
+        // 🔥 每次开始新游戏时，gameSessionId +1
+        room.gameSessionId++;
+        logger.info("Room {} starting game session #{} with mode {}", 
+                roomId, room.gameSessionId, room.mode);
 
         // ★ 根据 mode 初始化对应的 GameService
         if (room.mode == GameMode.ARCH_A) {
@@ -267,6 +274,8 @@ public class LobbyService {
         dto.setStarted(r.started);
         // 🔥 设置架构模式
         dto.setArchitecture(r.mode == GameMode.ARCH_B ? "B" : "A");
+        // 🔥 设置游戏局数ID
+        dto.setGameSessionId(r.gameSessionId);
         List<PlayerInfoDto> playerDtos = new ArrayList<>();
         for (String username : r.players) {
             PlayerInfoDto p = new PlayerInfoDto();
