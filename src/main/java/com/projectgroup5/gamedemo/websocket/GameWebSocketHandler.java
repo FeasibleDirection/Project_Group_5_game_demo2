@@ -68,34 +68,35 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String sessionId = session.getId();
         String payload = message.getPayload();
-        
+
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> msg = objectMapper.readValue(payload, Map.class);
             String type = (String) msg.get("type");
-            
+
             switch (type) {
                 case "JOIN_GAME":
                     handleJoinGame(session, msg);
                     break;
-                    
+
                 case "PLAYER_INPUT":
                     handlePlayerInput(session, msg);
                     break;
-                    
+
                 case "LEAVE_GAME":
                     handleLeaveGame(session);
                     break;
-                    
+
                 default:
                     logger.warn("Unknown message type: {}", type);
             }
-            
+
         } catch (Exception e) {
             logger.error("Error handling message from {}", sessionId, e);
             sendMessage(session, Map.of("type", "ERROR", "message", e.getMessage()));
         }
     }
+
     
     /**
      * 处理玩家加入游戏（Architecture A）
@@ -104,18 +105,18 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         String username = (String) msg.get("username");
         String token = (String) msg.get("token");
         Long roomId = ((Number) msg.get("roomId")).longValue();
-        
+
         // 1. 验证Token
         boolean validToken = authService.getUserByToken(token)
             .map(u -> u.getUsername().equals(username))
             .orElse(false);
-        
+
         if (!validToken) {
             sendMessage(session, Map.of("type", "ERROR", "message", "Invalid token"));
             session.close();
             return;
         }
-        
+
         // 2. 检查玩家是否在房间中
         if (!roomManager.isPlayerInRoom(roomId, username)) {
             sendMessage(session, Map.of(
@@ -125,14 +126,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             session.close();
             return;
         }
-        
+
         // 3. 注册连接
         String sessionId = session.getId();
         connections.put(sessionId, new PlayerConnection(roomId, username));
         roomSessions.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
-        
+
         logger.info("Player {} joined game room {} (Architecture A)", username, roomId);
-        
+
         // 4. 发送加入成功消息
         sendMessage(session, Map.of(
             "type", "JOINED",
@@ -251,5 +252,25 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
             this.username = username;
         }
     }
+
+    public void broadcastGameState(GameWorld world) {
+        try {
+            Map<String, Object> data = Map.of(
+                    "type", "GAME_STATE",
+                    "players", world.getPlayers().values(),
+                    "bullets", world.getBullets().values(),
+                    "asteroids", world.getAsteroids().values(),
+                    "phase", world.getPhase().name(),
+                    "frame", world.getCurrentFrameNumber()
+            );
+
+            String json = objectMapper.writeValueAsString(data);
+            broadcastToRoom(world.getRoomId(), json);
+
+        } catch (Exception e) {
+            logger.error("Failed to broadcast game state", e);
+        }
+    }
+
 }
 

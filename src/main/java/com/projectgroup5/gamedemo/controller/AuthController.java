@@ -1,8 +1,8 @@
 package com.projectgroup5.gamedemo.controller;
 
 import com.projectgroup5.gamedemo.service.AuthService;
-import com.projectgroup5.gamedemo.entity.LoginRequest;
-import com.projectgroup5.gamedemo.entity.LoginResponse;
+import com.projectgroup5.gamedemo.dto.LoginRequest;
+import com.projectgroup5.gamedemo.dto.LoginResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

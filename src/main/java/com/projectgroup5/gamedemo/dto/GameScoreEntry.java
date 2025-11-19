@@ -7,6 +7,18 @@ public class GameScoreEntry {
     private int score;
     private long elapsedMillis;
     private boolean finished;
+    private long lastUpdateMillis;
+
+    public GameScoreEntry(String username, int hp, int score, long elapsedMillis, boolean finished) {
+        this.username = username;
+        this.hp = hp;
+        this.score = score;
+        this.elapsedMillis = elapsedMillis;
+        this.finished = finished;
+    }
+    
+    public GameScoreEntry() {
+    }
 
     public String getUsername() {
         return username;
@@ -46,5 +58,13 @@ public class GameScoreEntry {
 
     public void setFinished(boolean finished) {
         this.finished = finished;
+    }
+
+    public long getLastUpdateMillis() {
+        return lastUpdateMillis;
+    }
+
+    public void setLastUpdateMillis(long lastUpdateMillis) {
+        this.lastUpdateMillis = lastUpdateMillis;
     }
 }

@@ -2,7 +2,7 @@ package com.projectgroup5.gamedemo.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.projectgroup5.gamedemo.GameHeartbeatRequest;
+import com.projectgroup5.gamedemo.dto.GameHeartbeatRequest;
 import com.projectgroup5.gamedemo.dao.GameLogRepository;
 import com.projectgroup5.gamedemo.dto.GameScoreEntry;
 import com.projectgroup5.gamedemo.entity.GameLog;

@@ -18,7 +18,8 @@ let gameState = {
     countdownMs: 0,
     elapsedMs: 0,
     players: [],
-    bullets: []
+    bullets: [],
+    asteroids: []  // 石头数据
 };
 
 // 输入状态（本地）
@@ -43,9 +44,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     winMode = params.get('win') || 'SCORE_50';
     const arch = params.get('arch') || 'A';
     
-    // 从localStorage获取用户信息
-    username = localStorage.getItem('username');
-    token = localStorage.getItem('token');
+    console.log('[INIT]', 'roomId:', roomId, 'winMode:', winMode, 'arch:', arch);
+    
+    // 从localStorage获取用户信息（使用session.js中定义的键名）
+    username = localStorage.getItem('game_demo_username');
+    token = localStorage.getItem('game_demo_token');
+    
+    console.log('[INIT]', 'username:', username, 'token:', token ? '存在' : '不存在');
     
     if (!roomId || !username || !token) {
         alert('参数错误，返回大厅');
@@ -134,18 +139,23 @@ function handleServerMessage(msg) {
             break;
             
         case 'NOT_IN_ROOM':
-            alert(msg.message);
+            console.error('[NOT_IN_ROOM]', msg.message);
+            console.log('[DEBUG]', '可能原因：GameWorld未创建或玩家未在房间中');
+            console.log('[DEBUG]', '请先在大厅点击"Start (Arch A)"按钮开始游戏');
+            alert(msg.message + '\n\n请先在大厅点击"Start (Arch A)"按钮');
             window.location.href = '/lobby.html';
             break;
             
         case 'GAME_STATE':
             // 更新游戏状态（服务器权威）
+            console.log('[GAME_STATE]', 'phase:', msg.phase, 'players:', msg.players?.length, 'bullets:', msg.bullets?.length, 'asteroids:', msg.asteroids?.length);
             gameState.phase = msg.phase;
             gameState.frame = msg.frame;
             gameState.countdownMs = msg.countdownMs || 0;
             gameState.elapsedMs = msg.elapsedMs || 0;
             gameState.players = msg.players || [];
             gameState.bullets = msg.bullets || [];
+            gameState.asteroids = msg.asteroids || [];  // 接收石头数据
             
             // 更新UI
             updateUI();
@@ -304,6 +314,25 @@ function renderGame() {
         ctx.beginPath();
         ctx.arc(bullet.x, bullet.y, 4, 0, Math.PI * 2);
         ctx.fill();
+    });
+    
+    // 渲染石头（障碍物）
+    gameState.asteroids.forEach(asteroid => {
+        // 根据血量和大小选择颜色
+        let color = asteroid.isBig ? '#a67c52' : '#c48a4b';
+        if (asteroid.hp < (asteroid.isBig ? 2 : 1)) {
+            color = '#8a6239'; // 受伤后变暗
+        }
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(asteroid.x, asteroid.y, asteroid.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 石头边框（增加立体感）
+        ctx.strokeStyle = '#6a4a2a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
     });
 }
 

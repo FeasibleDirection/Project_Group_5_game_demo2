@@ -1,7 +1,7 @@
 package com.projectgroup5.gamedemo.service;
 
 import com.projectgroup5.gamedemo.dao.UserRepository;
-import com.projectgroup5.gamedemo.entity.LoginResponse;
+import com.projectgroup5.gamedemo.dto.LoginResponse;
 import com.projectgroup5.gamedemo.entity.User;
 import org.springframework.stereotype.Service;
 

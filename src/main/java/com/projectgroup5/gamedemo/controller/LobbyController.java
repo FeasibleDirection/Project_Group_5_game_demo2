@@ -1,11 +1,13 @@
 package com.projectgroup5.gamedemo.controller;
 
-import com.projectgroup5.gamedemo.CreateRoomRequest;
-import com.projectgroup5.gamedemo.LobbySlotDto;
+import com.projectgroup5.gamedemo.dto.CreateRoomRequest;
+import com.projectgroup5.gamedemo.dto.LobbySlotDto;
+import com.projectgroup5.gamedemo.dto.GameRoomConfigDto;
 import com.projectgroup5.gamedemo.dto.RoomDto;
 import com.projectgroup5.gamedemo.entity.User;
 import com.projectgroup5.gamedemo.game.GameRoomManager;
 import com.projectgroup5.gamedemo.service.AuthService;
+import com.projectgroup5.gamedemo.service.GameMode;
 import com.projectgroup5.gamedemo.service.LobbyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -167,5 +169,45 @@ public class LobbyController {
         }
         String token = authHeader.substring("Bearer ".length()).trim();
         return authService.getUserByToken(token);
+    }
+
+
+    @PostMapping("/rooms/{roomId}/start")
+    public ResponseEntity<?> startRoom(
+            @PathVariable("roomId") long roomId,
+            @RequestParam(name = "mode", required = false, defaultValue = "ARCH_A") String modeStr,
+            @RequestHeader("Authorization") String authHeader) {
+
+        String token = authHeader.replaceFirst("Bearer ", "").trim();
+        User user = authService.getUserByToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid token"));
+
+        GameMode mode = "ARCH_B".equalsIgnoreCase(modeStr)
+                ? GameMode.ARCH_B
+                : GameMode.ARCH_A;
+
+        lobbyService.startRoom(roomId, user.getUsername(), mode);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 给 game.html 用：进入游戏前先查当前房间配置（包括架构模式）
+     */
+    @GetMapping("/rooms/{roomId}/config")
+    public ResponseEntity<GameRoomConfigDto> getRoomConfig(
+            @PathVariable("roomId") long roomId) {
+
+        return lobbyService.findRoom(roomId)
+                .map(room -> {
+                    GameRoomConfigDto dto = new GameRoomConfigDto();
+                    dto.setRoomId(room.roomId);
+                    dto.setMode(room.mode);
+                    dto.setMapName(room.mapName);
+                    dto.setWinMode(room.winMode);
+                    dto.setMaxPlayers(room.maxPlayers);
+                    return ResponseEntity.ok(dto);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

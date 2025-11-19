@@ -22,6 +22,10 @@ public class GameWorld {
     
     // 游戏实体
     private final Map<String, BulletEntity> bullets = new ConcurrentHashMap<>();
+    private final Map<String, AsteroidEntity> asteroids = new ConcurrentHashMap<>();
+    
+    // 石头生成计时器（毫秒）
+    private double asteroidSpawnTimer = 0;
     
     // 游戏阶段
     private volatile GamePhase phase = GamePhase.WAITING;
@@ -95,6 +99,18 @@ public class GameWorld {
     
     public Map<String, BulletEntity> getBullets() { 
         return bullets; 
+    }
+    
+    public Map<String, AsteroidEntity> getAsteroids() {
+        return asteroids;
+    }
+    
+    public double getAsteroidSpawnTimer() {
+        return asteroidSpawnTimer;
+    }
+    
+    public void setAsteroidSpawnTimer(double timer) {
+        this.asteroidSpawnTimer = timer;
     }
     
     public long getCurrentFrameNumber() { 

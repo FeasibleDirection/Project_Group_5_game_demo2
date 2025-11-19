@@ -1,7 +1,7 @@
 package com.projectgroup5.gamedemo.service;
 
-import com.projectgroup5.gamedemo.CreateRoomRequest;
-import com.projectgroup5.gamedemo.LobbySlotDto;
+import com.projectgroup5.gamedemo.dto.CreateRoomRequest;
+import com.projectgroup5.gamedemo.dto.LobbySlotDto;
 import com.projectgroup5.gamedemo.dto.PlayerInfoDto;
 import com.projectgroup5.gamedemo.dto.RoomDto;
 import org.springframework.stereotype.Service;
@@ -14,20 +14,29 @@ public class LobbyService {
 
     private static final int TABLE_COUNT = 20;
 
+    public LobbyService(GameServiceArchA gameServiceArchA, GameServiceArchB gameServiceArchB) {
+        this.gameServiceArchA = gameServiceArchA;
+        this.gameServiceArchB = gameServiceArchB;
+    }
+
     // 房间内部模型
-    private static class Room {
-        long roomId;
-        int tableIndex;
-        int maxPlayers;
-        String mapName;
-        String winMode;
-        String ownerName;
-        boolean started;                // 是否已经开始游戏
+    public static class Room {
+        public long roomId;
+        public int tableIndex;
+        public int maxPlayers;
+        public String mapName;
+        public String winMode;
+        public String ownerName;
+        public boolean started;                // 是否已经开始游戏
+        public String architectureMode;
 
         // 玩家列表（第一个一定是房主）
-        LinkedHashSet<String> players = new LinkedHashSet<>();
+        public LinkedHashSet<String> players = new LinkedHashSet<>();
         // 已经点了“准备”的玩家（房主不用准备）
-        Set<String> readyPlayers = new HashSet<>();
+        public Set<String> readyPlayers = new HashSet<>();
+
+        // ★ 新增：当前房间使用的架构模式 (A / B)
+        public GameMode mode = GameMode.ARCH_A;
     }
 
     private final Room[] tables = new Room[TABLE_COUNT];
@@ -37,10 +46,15 @@ public class LobbyService {
     private final Map<Long, Room> roomsById = new HashMap<>();
     // 每个玩家最多在一个房间：username -> roomId
     private final Map<String, Long> userToRoom = new HashMap<>();
+    private final AtomicLong roomIdSeq = new AtomicLong(1);
+    private final GameServiceArchA gameServiceArchA;
+    private final GameServiceArchB gameServiceArchB;
 
     /**
-     * 一局游戏真正结束后（GameService 调用），
-     * 把房间重置回“等待中”：started=false，所有人未准备。
+     * 一局游戏彻底结束后（GameService 通知），重置房间：
+     * - 清空 ready 列表（所有人变回“未准备”）
+     * - started = false
+     * - 保留玩家列表和 mode，方便下一局继续在同一架构模式下玩
      */
     public void resetRoomAfterGame(long roomId) {
         Room room = roomsById.get(roomId);
@@ -106,6 +120,43 @@ public class LobbyService {
 
         return toDto(r);
     }
+
+    /**
+     * 房主点击开始，选择架构模式 A/B。
+     * - 检查房主身份
+     * - 检查所有玩家已准备
+     * - 设置 Room.started = true，Room.mode = 指定模式
+     */
+    public void startRoom(long roomId, String username, GameMode mode) {
+        Room room = roomsById.get(roomId);
+        if (room == null) {
+            throw new IllegalArgumentException("Room not found: " + roomId);
+        }
+
+        if (!Objects.equals(room.ownerName, username)) {
+            throw new IllegalStateException("Only room owner can start the game");
+        }
+
+        if (room.started) {
+            // 已经开始就不重复设置
+            return;
+        }
+
+        if (!room.readyPlayers.containsAll(room.players)) {
+            throw new IllegalStateException("Not all players are ready");
+        }
+
+        room.mode = mode != null ? mode : GameMode.ARCH_A;
+        room.started = true;
+
+        // ★ 根据 mode 初始化对应的 GameService
+        if (room.mode == GameMode.ARCH_A) {
+            gameServiceArchA.startSession(room.roomId, room.players);
+        } else {
+            gameServiceArchB.startSession(room.roomId, room.players);
+        }
+    }
+
 
     // 加入房间
     public synchronized RoomDto joinRoom(long roomId, String username) {
@@ -210,5 +261,19 @@ public class LobbyService {
         dto.setReadyUsernames(new ArrayList<>(r.readyPlayers));
 
         return dto;
+    }
+
+    public GameMode getModeForRoom(long roomId) {
+        Room room = roomsById.get(roomId);
+        if (room == null) {
+            // 默认按 A 处理，防止 null
+            return GameMode.ARCH_A;
+        }
+        return room.mode;
+    }
+
+    /** 也顺便提供一个 RoomDto 用来给前端查询房间配置（mode/map/maxPlayers 等） */
+    public Optional<Room> findRoom(long roomId) {
+        return Optional.ofNullable(roomsById.get(roomId));
     }
 }

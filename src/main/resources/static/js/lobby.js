@@ -442,3 +442,65 @@ function resetCreateOptions() {
         });
     });
 }
+
+
+function renderRoomActions(room, currentUsername, container) {
+    const isInRoom = room.players.some(p => p.username === currentUsername);
+    const isOwner = room.ownerName === currentUsername;
+
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'table-actions';
+
+    if (isOwner) {
+        const btnStartA = document.createElement('button');
+        btnStartA.textContent = '开始(A)';
+        btnStartA.className = 'btn btn-primary';
+        btnStartA.onclick = () => startGame(room.roomId, 'ARCH_A');
+
+        const btnStartB = document.createElement('button');
+        btnStartB.textContent = '开始(B)';
+        btnStartB.className = 'btn btn-secondary';
+        btnStartB.onclick = () => startGame(room.roomId, 'ARCH_B');
+
+        const btnLeave = document.createElement('button');
+        btnLeave.textContent = '退出';
+        btnLeave.onclick = () => leaveRoom(room.roomId);
+
+        actionsDiv.appendChild(btnStartA);
+        actionsDiv.appendChild(btnStartB);
+        actionsDiv.appendChild(btnLeave);
+    } else if (isInRoom) {
+        // 队员：准备 / 退出
+        const btnReady = document.createElement('button');
+        btnReady.textContent = room.isReady ? '取消准备' : '准备';
+        btnReady.onclick = () => toggleReady(room.roomId);
+
+        const btnLeave = document.createElement('button');
+        btnLeave.textContent = '退出';
+        btnLeave.onclick = () => leaveRoom(room.roomId);
+
+        actionsDiv.appendChild(btnReady);
+        actionsDiv.appendChild(btnLeave);
+    } else {
+        const btnJoin = document.createElement('button');
+        btnJoin.textContent = '加入';
+        btnJoin.onclick = () => joinRoom(room.roomId);
+        actionsDiv.appendChild(btnJoin);
+    }
+
+    container.appendChild(actionsDiv);
+}
+
+async function startGame(roomId, mode) {
+    const resp = await authFetch(`/api/lobby/rooms/${roomId}/start?mode=${mode}`, {
+        method: 'POST'
+    });
+    if (!resp.ok) {
+        const txt = await resp.text();
+        alert(txt || '开始失败');
+    } else {
+        // 开始成功后，由 lobby 的 500ms 轮询检测到 room.started=true 后自动跳转 game.html
+        await fetchLobbyOnce();
+    }
+}
+

@@ -1,4 +1,5 @@
-// 简单 2D 打飞机，方案 A：本地模拟 + 周期心跳同步服务器分数
+let GAME_MODE = 'ARCH_A';  // 默认 A
+let ROOM_ID = null;
 
 const ASTEROID_INTERVAL_MS = 800;   // 掉落间隔
 const BULLET_SPEED = 400;          // 子弹速度 (px/s)
@@ -29,6 +30,26 @@ let heartbeatTimer = null;
 let scoreboardTimer = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const params = new URLSearchParams(window.location.search);
+    ROOM_ID = parseInt(params.get('roomId'), 10);
+
+    if (!ROOM_ID) {
+        alert('Missing roomId');
+        window.location.href = '/lobby.html';
+        return;
+    }
+
+    // 先查房间配置，拿到 mode
+    try {
+        const resp = await authFetch(`/api/lobby/rooms/${ROOM_ID}/config`);
+        if (resp.ok) {
+            const cfg = await resp.json();
+            GAME_MODE = cfg.mode || 'ARCH_A';
+            console.log('Game mode =', GAME_MODE);
+        }
+    } catch (e) {
+        console.error('failed to load room config', e);
+    }
     // 1. 校验登录
     try {
         currentUser = await validateToken();
@@ -317,31 +338,21 @@ function formatTime(sec) {
 
 // finishedOnly 参数用来在游戏结束时强制再发一次
 async function sendHeartbeat(finishedOnly = false) {
-    if (!roomId || !currentUser) return;
-
-    if (gameOver && !finishedOnly) {
-        // 已经 gameOver 的情况下，定时器里的心跳不用再重复发
-        clearInterval(heartbeatTimer);
-        heartbeatTimer = null;
-    }
-
-    const body = {
-        roomId,
-        hp: player.hp,
-        score: player.score,
-        elapsedMillis: Math.floor(elapsedMillis),
-        finished: gameOver
+    const payload = {
+        roomId: ROOM_ID,
+        hp: hp,
+        score: score,
+        elapsedMillis: elapsed,
+        finished: finished,
+        input: ''   // 预留：将来你想给架构 A 传键盘事件，可以在这里填
     };
 
     try {
-        const resp = await authFetch('/api/game/heartbeat', {
+        await authFetch('/api/game/heartbeat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(body)
+            body: JSON.stringify(payload)
         });
-        if (!resp.ok) {
-            console.error('heartbeat failed', await resp.text());
-        }
     } catch (e) {
         console.error('heartbeat error', e);
     }
@@ -404,14 +415,11 @@ function showGameOverPanel() {
 // 统一的“离开游戏并回大厅”函数
 async function leaveGameAndBack() {
     try {
-        if (roomId) {
-            await authFetch(`/api/game/room/${roomId}/leave`, {
-                method: 'POST'
-            });
+        if (ROOM_ID) {
+            await authFetch(`/api/game/room/${ROOM_ID}/leave`, { method: 'POST' });
         }
     } catch (e) {
         console.error('leave game error', e);
-        // 即使报错，也不要卡住用户，继续跳回大厅
     } finally {
         window.location.href = '/lobby.html';
     }
