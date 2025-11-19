@@ -20,7 +20,8 @@ public class PhysicsEngine {
     private static final int WORLD_HEIGHT = 640;
     private static final double ASTEROID_SPAWN_INTERVAL_MS = 800.0; // 每800ms生成一个石头
     private static final double ASTEROID_SPAWN_X_MARGIN = 30.0; // 离边界30px
-    
+    private static final int MAX_ASTEROIDS = 20;
+
     private final EventBus eventBus;
     
     public PhysicsEngine(EventBus eventBus) {
@@ -94,23 +95,28 @@ public class PhysicsEngine {
      */
     private void spawnAsteroids(GameWorld world, double deltaSeconds) {
         double timer = world.getAsteroidSpawnTimer() + deltaSeconds * 1000;
-        
+
+        // 控制场景中石头最大数量
+        if (world.getAsteroids().size() >= MAX_ASTEROIDS) {
+            world.setAsteroidSpawnTimer(timer);
+            return;
+        }
+
         if (timer >= ASTEROID_SPAWN_INTERVAL_MS) {
             timer = 0;
-            
-            // 随机位置（X轴）
-            double x = ASTEROID_SPAWN_X_MARGIN + 
-                Math.random() * (WORLD_WIDTH - 2 * ASTEROID_SPAWN_X_MARGIN);
-            
-            // 40%概率生成大石头
+
+            double x = ASTEROID_SPAWN_X_MARGIN +
+                    Math.random() * (WORLD_WIDTH - 2 * ASTEROID_SPAWN_X_MARGIN);
+
             boolean isBig = Math.random() < 0.4;
-            
+
             AsteroidEntity asteroid = new AsteroidEntity(x, -30, isBig);
             world.getAsteroids().put(asteroid.id, asteroid);
-            
-            logger.debug("Spawned asteroid at x={}, isBig={}", x, isBig);
+
+            logger.debug("Spawned asteroid at x={}, isBig={}, total={}",
+                    x, isBig, world.getAsteroids().size());
         }
-        
+
         world.setAsteroidSpawnTimer(timer);
     }
     

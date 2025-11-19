@@ -276,4 +276,16 @@ public class LobbyService {
     public Optional<Room> findRoom(long roomId) {
         return Optional.ofNullable(roomsById.get(roomId));
     }
+
+    /**
+     * 判断某个用户当前是否在指定 room 里
+     */
+    public synchronized boolean isPlayerInRoom(long roomId, String username) {
+        Room room = roomsById.get(roomId);
+        if (room == null) {
+            return false;
+        }
+        return room.players.contains(username);
+    }
+
 }

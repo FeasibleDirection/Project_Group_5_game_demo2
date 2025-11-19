@@ -36,14 +36,14 @@ public class GameWorld {
         IN_PROGRESS,  // 游戏中
         FINISHED      // 已结束
     }
-    
+
     public GameWorld(long roomId, String mapName, String winMode, int maxPlayers) {
         this.roomId = roomId;
         this.mapName = mapName;
         this.winMode = winMode;
-        this.maxPlayers = maxPlayers;
+        this.maxPlayers = Math.min(maxPlayers, 4);
     }
-    
+
     /**
      * 初始化玩家（分散初始位置）
      */

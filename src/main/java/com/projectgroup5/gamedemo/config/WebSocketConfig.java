@@ -1,6 +1,7 @@
 package com.projectgroup5.gamedemo.config;
 
 import com.projectgroup5.gamedemo.websocket.GameWebSocketHandler;
+import com.projectgroup5.gamedemo.websocket.GameWebSocketHandlerB;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.*;
 
@@ -11,16 +12,24 @@ import org.springframework.web.socket.config.annotation.*;
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final GameWebSocketHandler gameWebSocketHandler;
+    private final GameWebSocketHandler gameWebSocketHandlerA;
+    private final GameWebSocketHandlerB gameWebSocketHandlerB;
 
-    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler) {
-        this.gameWebSocketHandler = gameWebSocketHandler;
+    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandlerA,
+                           GameWebSocketHandlerB gameWebSocketHandlerB) {
+        this.gameWebSocketHandlerA = gameWebSocketHandlerA;
+        this.gameWebSocketHandlerB = gameWebSocketHandlerB;
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(gameWebSocketHandler, "/ws/game")
-                .setAllowedOrigins("*");  // 生产环境需要限制域名
+        // Architecture A (服务器权威)
+        registry.addHandler(gameWebSocketHandlerA, "/ws/game")
+                .setAllowedOrigins("*");
+
+        // Architecture B (P2P Host，经服务器中转)
+        registry.addHandler(gameWebSocketHandlerB, "/ws/game-b")
+                .setAllowedOrigins("*");
     }
 }
 

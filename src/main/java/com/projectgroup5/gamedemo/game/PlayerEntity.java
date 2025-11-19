@@ -21,7 +21,7 @@ public class PlayerEntity {
         this.username = username;
         this.x = x;
         this.y = y;
-        this.hp = 100;
+        this.hp = 3;
         this.score = 0;
         this.alive = true;
         this.velocityX = 0;

@@ -4,7 +4,7 @@
 
 本项目实现了两种不同的多人游戏架构，用于对比和评估：
 
-### **Architecture A: Server-Authoritative + Event-Driven** ✅ (已实现)
+### **Architecture A: Server-Authoritative + Event-Driven**  (已实现)
 ### **Architecture B: P2P Lockstep** ⏳ (待实现)
 
 ---
@@ -115,10 +115,10 @@ eventBus.publish(new CollisionDetectedEvent(...));
 文件: `src/main/resources/static/js/game-architecture-a.js`
 
 **核心特点**:
-- ✅ **只发送输入**: 不计算位置、碰撞
-- ✅ **接收状态**: 从服务器接收完整状态
-- ✅ **60FPS渲染**: 插值显示流畅画面
-- ✅ **20Hz输入**: 每50ms发送一次输入
+-  **只发送输入**: 不计算位置、碰撞
+-  **接收状态**: 从服务器接收完整状态
+-  **60FPS渲染**: 插值显示流畅画面
+-  **20Hz输入**: 每50ms发送一次输入
 
 ```javascript
 // 客户端只做这些：
@@ -210,7 +210,7 @@ mvn spring-boot:run
 2. 设置玩家数量、地图、胜利条件
 3. 等待其他玩家加入
 4. 作为房主，你会看到两个开始按钮：
-   - **Start (Arch A)**: 服务器权威模式 ✅
+   - **Start (Arch A)**: 服务器权威模式 
    - **Start (Arch B)**: P2P模式 ⏳（未实现）
 
 ### **4. 游戏控制**
@@ -227,11 +227,11 @@ mvn spring-boot:run
 
 | 指标 | 目标 | 实际 |
 |------|------|------|
-| 游戏Tick频率 | 25Hz | ✅ 25Hz |
-| 渲染帧率 | 60FPS | ✅ 60FPS |
-| 输入延迟 | <150ms | ✅ 50-100ms |
-| 同时在线房间 | 100 | ✅ 支持 |
-| 单房间玩家 | 1-4 | ✅ 支持 |
+| 游戏Tick频率 | 25Hz |  25Hz |
+| 渲染帧率 | 60FPS |  60FPS |
+| 输入延迟 | <150ms |  50-100ms |
+| 同时在线房间 | 100 |  支持 |
+| 单房间玩家 | 1-4 |  支持 |
 
 ---
 
@@ -304,5 +304,5 @@ WS /ws/game  # 游戏WebSocket连接
 
 **版本**: v1.0  
 **更新日期**: 2025-11-19  
-**架构状态**: Architecture A ✅ | Architecture B ⏳
+**架构状态**: Architecture A  | Architecture B ⏳
 

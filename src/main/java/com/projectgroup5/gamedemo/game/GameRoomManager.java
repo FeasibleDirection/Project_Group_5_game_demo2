@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,5 +97,10 @@ public class GameRoomManager {
     public Map<Long, GameWorld> getAllActiveGames() {
         return activeGames;
     }
+
+    public Collection<GameWorld> getActiveWorlds() {
+        return activeGames.values();
+    }
+
 }
 

@@ -53,9 +53,10 @@
         script.src = '/js/game-architecture-a.js';
         document.body.appendChild(script);
     } else if (arch === 'B') {
-        // Architecture B: P2P Lockstep (未实现)
-        alert('Architecture B (P2P) 尚未实现');
-        window.location.href = '/lobby.html';
+        // Architecture B: P2P Lockstep (Host-based, via server relay)
+        const script = document.createElement('script');
+        script.src = '/js/game-architecture-b.js';
+        document.body.appendChild(script);
     } else {
         // 默认使用原始本地游戏逻辑（废弃）
         const script = document.createElement('script');
