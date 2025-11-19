@@ -26,12 +26,17 @@ function startAutoRefreshLobby() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 🔥 检查URL参数：如果从游戏页面错误返回或主动退出，禁用自动跳转
+    // 🔥 检查URL参数：区分错误返回和正常退出
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('fromGameError') || urlParams.has('fromGameExit')) {
+    if (urlParams.has('fromGameError')) {
+        // 错误返回：禁用自动跳转
         allowAutoEnterGame = false;
-        console.log('[LOBBY] 禁用自动进入游戏（从游戏页面返回）');
-        // 清除URL参数，避免刷新后仍然禁用
+        console.log('[LOBBY] 禁用自动进入游戏（游戏错误返回）');
+        window.history.replaceState({}, document.title, '/lobby.html');
+    } else if (urlParams.has('fromGameExit')) {
+        // 正常退出：重置为允许自动跳转
+        allowAutoEnterGame = true;
+        console.log('[LOBBY] 重置allowAutoEnterGame=true（游戏正常结束）');
         window.history.replaceState({}, document.title, '/lobby.html');
     }
 
@@ -172,11 +177,11 @@ function applyLobbySlots(slots) {
         if (isInRoom) {
             currentRoomId = room.roomId;
             
-            // 🔥 检测游戏局数ID变化：gameSessionId > lastGameSessionId = 新游戏开始
+            // 🔥 检测游戏局数ID变化：只要gameSessionId递增，就说明新游戏开始
             const currentSessionId = room.gameSessionId || 0;
-            if (currentSessionId > lastGameSessionId && lastGameSessionId >= 0) {
-                console.log('[LOBBY] 检测到新游戏开始（session', lastGameSessionId, '→', currentSessionId, '），重新允许自动跳转');
-                allowAutoEnterGame = true;
+            if (currentSessionId > lastGameSessionId) {
+                console.log('[LOBBY] 检测到新游戏开始（session', lastGameSessionId, '→', currentSessionId, '），重置allowAutoEnterGame=true');
+                allowAutoEnterGame = true;  // 🔥 重置为初始状态
             }
             lastGameSessionId = currentSessionId;
             
