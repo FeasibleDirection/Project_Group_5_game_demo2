@@ -4,6 +4,8 @@ const TABLE_COUNT = 20;
 
 let lobbyAutoRefreshTimer = null;
 let lobbyAutoRefreshing = false;
+let leaderboardAutoRefreshTimer = null; // 🔥 排行榜定时器
+let leaderboardData = []; // 🔥 存储排行榜数据
 let currentUser = null;
 let currentRoomId = null; // 当前用户所在的房间 id（如果有）
 let allowAutoEnterGame = true; // 🔥 是否允许自动进入游戏（防止无限跳转）
@@ -23,6 +25,127 @@ function startAutoRefreshLobby() {
             lobbyAutoRefreshing = false;
         }
     }, 500); // 每 500ms 刷新一次
+}
+
+// 🔥 启动排行榜自动刷新（每30秒）
+function startAutoRefreshLeaderboard() {
+    if (leaderboardAutoRefreshTimer !== null) return;
+
+    // 立即调用一次
+    fetchLeaderboard();
+
+    leaderboardAutoRefreshTimer = setInterval(async () => {
+        try {
+            console.log('[LEADERBOARD] Auto-refreshing...');
+            await fetchLeaderboard();
+        } catch (e) {
+            console.error('[LEADERBOARD] Auto refresh error', e);
+        }
+    }, 30000); // 每 30 秒刷新一次
+}
+
+// 🔥 获取排行榜数据并存储
+async function fetchLeaderboard() {
+    try {
+        console.log('[LEADERBOARD] Fetching data from /api/lobby/leaderboard...');
+        const resp = await authFetch('/api/lobby/leaderboard');
+        
+        if (!resp.ok) {
+            console.error('[LEADERBOARD] API error:', resp.status);
+            return;
+        }
+        
+        const data = await resp.json();
+        
+        // 🔥 存储到全局变量
+        leaderboardData = data;
+        
+        console.log('[LEADERBOARD] Data received and stored:', leaderboardData);
+        console.log('[LEADERBOARD] Total entries:', leaderboardData.length);
+        
+        // 打印详细数据
+        if (leaderboardData.length > 0) {
+            console.table(leaderboardData);
+        }
+        
+    } catch (e) {
+        console.error('[LEADERBOARD] Fetch error:', e);
+    }
+}
+
+// 🔥 渲染排行榜
+function renderLeaderboard() {
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    
+    if (!leaderboardContent) {
+        console.error('[LEADERBOARD] Content element not found');
+        return;
+    }
+    
+    if (!leaderboardData || leaderboardData.length === 0) {
+        leaderboardContent.innerHTML = '<div class="lb-loading">暂无游戏数据</div>';
+        return;
+    }
+    
+    // 计算最高分，用于进度条
+    const maxScore = Math.max(...leaderboardData.map(e => e.totalScore));
+    
+    // 渲染表头
+    leaderboardContent.innerHTML = `
+        <div class="lb-table-header">
+            <div>排名</div>
+            <div>名称</div>
+            <div>分数</div>
+        </div>
+    `;
+    
+    // 渲染排行榜条目
+    leaderboardData.forEach((entry, index) => {
+        const rank = index + 1;
+        const entryDiv = document.createElement('div');
+        
+        // 添加条目类
+        let entryClass = 'lb-entry';
+        if (rank === 1) entryClass += ' top1';
+        else if (rank === 2) entryClass += ' top2';
+        else if (rank === 3) entryClass += ' top3';
+        entryDiv.className = entryClass;
+        
+        // 排名类
+        let rankClass = 'lb-rank';
+        if (rank === 1) rankClass += ' top1';
+        else if (rank === 2) rankClass += ' top2';
+        else if (rank === 3) rankClass += ' top3';
+        
+        // 进度条类
+        let progressClass = 'lb-progress-fill';
+        if (rank === 1) progressClass += ' top1';
+        else if (rank === 2) progressClass += ' top2';
+        else if (rank === 3) progressClass += ' top3';
+        
+        // 计算进度条宽度
+        const progressWidth = maxScore > 0 ? Math.min(100, (entry.totalScore / maxScore) * 100) : 0;
+        
+        entryDiv.innerHTML = `
+            <div class="${rankClass}">${rank}</div>
+            <div class="lb-info">
+                <div class="lb-username">${entry.username}</div>
+                <div class="lb-stats">
+                    <div class="lb-games">${entry.gamesPlayed}局</div>
+                </div>
+            </div>
+            <div class="lb-score-container">
+                <div class="lb-score">${entry.totalScore}</div>
+                <div class="lb-progress-bar">
+                    <div class="${progressClass}" style="width: ${progressWidth}%"></div>
+                </div>
+            </div>
+        `;
+        
+        leaderboardContent.appendChild(entryDiv);
+    });
+    
+    console.log('[LEADERBOARD] Rendered:', leaderboardData.length, 'entries');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -53,13 +176,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    const btnLeaderboard = document.getElementById('btnLeaderboard');
     const btnRefresh = document.getElementById('btnRefresh');
     const btnCreateRoom = document.getElementById('btnCreateRoom');
     const btnCancelCreate = document.getElementById('btnCancelCreate');
     const btnConfirmCreate = document.getElementById('btnConfirmCreate');
+    const btnCancelLeaderboard = document.getElementById('btnCancelLeaderboard');
 
     const createPanel = document.getElementById('createPanel');
     const createMsg = document.getElementById('createMessage');
+    const leaderboardPanel = document.getElementById('leaderboardPanel');
 
     // 初始化 20 个空桌子
     renderEmptyTables();
@@ -68,13 +194,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchLobby();
     // 启动自动刷新
     startAutoRefreshLobby();
+    
+    // 🔥 启动排行榜自动刷新（立即调用一次，然后每30秒刷新）
+    startAutoRefreshLeaderboard();
+
+    // 🏆 排行榜按钮
+    btnLeaderboard.addEventListener('click', () => {
+        // 如果创建房间面板显示，先触发取消
+        if (!createPanel.classList.contains('hidden')) {
+            resetCreateOptions();
+            createMsg.textContent = '';
+            createMsg.style.color = '#ffffff';
+            createPanel.classList.add('hidden');
+        }
+        
+        // 显示排行榜
+        leaderboardPanel.classList.remove('hidden');
+        // 刷新排行榜数据
+        fetchLeaderboard();
+        // 渲染排行榜
+        renderLeaderboard();
+    });
+
+    // 取消排行榜按钮
+    btnCancelLeaderboard.addEventListener('click', () => {
+        leaderboardPanel.classList.add('hidden');
+    });
 
     // 顶部按钮
     btnRefresh.addEventListener('click', async () => {
         await fetchLobby();
+        // 🔥 手动刷新时也获取排行榜数据
+        await fetchLeaderboard();
+        // 如果排行榜显示，刷新渲染
+        if (!leaderboardPanel.classList.contains('hidden')) {
+            renderLeaderboard();
+        }
     });
 
     btnCreateRoom.addEventListener('click', () => {
+        // 如果排行榜显示，先隐藏
+        if (!leaderboardPanel.classList.contains('hidden')) {
+            leaderboardPanel.classList.add('hidden');
+        }
+        
         createMsg.textContent = '';
         createMsg.style.color = '#ffffff';
         createPanel.classList.remove('hidden');
@@ -85,6 +248,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         createMsg.textContent = '';
         createMsg.style.color = '#ffffff';
         createPanel.classList.add('hidden');
+        // 不管排行榜状态
     });
 
     btnConfirmCreate.addEventListener('click', async () => {

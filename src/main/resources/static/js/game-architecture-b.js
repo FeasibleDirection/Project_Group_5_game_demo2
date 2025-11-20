@@ -780,11 +780,14 @@ function voteGameEnd(reason) {
     
     console.log('[ArchB-Gossip] Voting game end, reason:', reason);
     
-    // 发送投票到服务器
+    // 🔥 发送投票到服务器（包含玩家最终数据）
     sendMessage({
         type: 'GAME_END_VOTE',
         username,
         reason,
+        score: myPlayer.score,    // 玩家最终分数
+        hp: myPlayer.hp,          // 玩家最终血量
+        alive: myPlayer.alive,    // 玩家是否存活
         timestamp: Date.now()
     });
 }

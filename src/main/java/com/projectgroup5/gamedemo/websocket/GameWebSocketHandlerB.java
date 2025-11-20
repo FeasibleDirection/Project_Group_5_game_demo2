@@ -1,6 +1,8 @@
 package com.projectgroup5.gamedemo.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.projectgroup5.gamedemo.dao.GameLogRepository;
+import com.projectgroup5.gamedemo.entity.GameLog;
 import com.projectgroup5.gamedemo.service.AuthService;
 import com.projectgroup5.gamedemo.service.LobbyService;
 import com.projectgroup5.gamedemo.entity.User;
@@ -37,6 +39,7 @@ public class GameWebSocketHandlerB extends TextWebSocketHandler {
     private final AuthService authService;
     private final LobbyService lobbyService;
     private final ObjectMapper objectMapper;
+    GameLogRepository gameLogRepository;
 
     // sessionId -> WebSocketSession
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -54,10 +57,12 @@ public class GameWebSocketHandlerB extends TextWebSocketHandler {
     private final Map<Long, Long> roomStartTimes = new ConcurrentHashMap<>();
 
     public GameWebSocketHandlerB(AuthService authService,
-                                 LobbyService lobbyService,
-                                 ObjectMapper objectMapper) {
+                                LobbyService lobbyService,
+                                GameLogRepository gameLogRepository,
+                                ObjectMapper objectMapper) {
         this.authService = authService;
         this.lobbyService = lobbyService;
+        this.gameLogRepository = gameLogRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -299,13 +304,18 @@ public class GameWebSocketHandlerB extends TextWebSocketHandler {
         Object timestampObj = msg.get("timestamp");
         long timestamp = timestampObj instanceof Number ? 
             ((Number) timestampObj).longValue() : System.currentTimeMillis();
+        
+        // 🔥 获取玩家最终游戏数据
+        int score = msg.get("score") instanceof Number ? ((Number) msg.get("score")).intValue() : 0;
+        int hp = msg.get("hp") instanceof Number ? ((Number) msg.get("hp")).intValue() : 0;
+        boolean alive = msg.get("alive") instanceof Boolean ? (Boolean) msg.get("alive") : false;
 
-        logger.info("[ArchB-Gossip] [{}] GAME_END_VOTE: reason={}, timestamp={}", 
-                username, reason, timestamp);
+        logger.info("[ArchB-Gossip] [{}] GAME_END_VOTE: reason={}, score={}, hp={}, alive={}, timestamp={}", 
+                username, reason, score, hp, alive, timestamp);
 
-        // 记录投票
+        // 记录投票（包含玩家数据）
         gameEndVotes.computeIfAbsent(roomId, k -> new ConcurrentHashMap<>())
-                .put(username, new GameEndVote(username, reason, timestamp));
+                .put(username, new GameEndVote(username, reason, timestamp, score, hp, alive));
 
         // 检查是否所有玩家都投票了
         checkAndFinalizeGameEnd(roomId);
@@ -361,31 +371,69 @@ public class GameWebSocketHandlerB extends TextWebSocketHandler {
     }
 
     /**
-     * 保存游戏记录到数据库
+     * 保存游戏记录到数据库（格式与架构A类似）
      */
     private void saveGameLog(long roomId, Map<String, GameEndVote> votes, String finalReason) {
         try {
             Long startTime = roomStartTimes.get(roomId);
+            if (startTime == null) {
+                startTime = System.currentTimeMillis() - 60000; // 默认1分钟前
+            }
             long endTime = System.currentTimeMillis();
+            long elapsedMs = endTime - startTime;
             
-            // 构建result_json
-            Map<String, Object> result = new HashMap<>();
-            result.put("architecture", "B-Gossip");
-            result.put("finalReason", finalReason);
+            // 🔥 构建players列表（与架构A格式一致）
+            List<Map<String, Object>> players = new ArrayList<>();
+            for (GameEndVote vote : votes.values()) {
+                Map<String, Object> playerData = new LinkedHashMap<>();
+                playerData.put("username", vote.username);
+                playerData.put("score", vote.score);
+                playerData.put("hp", vote.hp);
+                playerData.put("alive", vote.alive);
+                playerData.put("elapsedMillis", elapsedMs);
+                players.add(playerData);
+            }
             
-            // event: {username: 事件类型}
-            Map<String, String> events = new HashMap<>();
+            // 🔥 找出获胜者（分数最高的玩家）
+            String winner = votes.values().stream()
+                    .max(Comparator.comparingInt(v -> v.score))
+                    .map(v -> v.username)
+                    .orElse("NONE");
+            
+            // 🔥 构建metadata
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("winner", winner);
+            metadata.put("mapName", "Unknown"); // 架构B没有地图信息
+            metadata.put("winMode", "Unknown"); // 架构B没有胜利模式信息
+            metadata.put("maxPlayers", votes.size());
+            metadata.put("architecture", "B");
+            metadata.put("finalReason", finalReason);
+            
+            // 🔥 构建events（记录每个玩家的投票原因）
+            Map<String, String> events = new LinkedHashMap<>();
             for (GameEndVote vote : votes.values()) {
                 events.put(vote.username, vote.reason);
             }
-            result.put("events", events);
+            metadata.put("events", events);
             
-            String resultJson = objectMapper.writeValueAsString(result);
+            // 🔥 构建result_json（与架构A格式一致）
+            Map<String, Object> root = new LinkedHashMap<>();
+            root.put("players", players);
+            root.put("metadata", metadata);
             
-            // TODO: 调用GameLogRepository保存数据库
-            logger.info("[ArchB-Gossip] Room {} game log saved: {}", roomId, resultJson);
-            logger.info("[ArchB-Gossip] Room {} duration: {}ms", 
-                    roomId, startTime != null ? (endTime - startTime) : -1);
+            String resultJson = objectMapper.writeValueAsString(root);
+            
+            // 🔥 保存到数据库
+            GameLog log = new GameLog();
+            log.setRoomId(roomId);
+            log.setStartedAt(startTime);
+            log.setEndedAt(endTime);
+            log.setResultJson(resultJson);
+            gameLogRepository.insert(log);
+            
+            logger.info("[ArchB-Gossip] Room {} game log saved to database", roomId);
+            logger.info("[ArchB-Gossip] Room {} duration: {}ms, winner: {}, players: {}", 
+                    roomId, elapsedMs, winner, votes.size());
             
         } catch (Exception e) {
             logger.error("[ArchB-Gossip] Failed to save game log for room {}", roomId, e);
@@ -512,20 +560,29 @@ public class GameWebSocketHandlerB extends TextWebSocketHandler {
         }
     }
 
-    /** 游戏结束投票信息 */
+    /** 游戏结束投票信息（包含玩家最终数据） */
     private static class GameEndVote {
         final String username;
         final String reason;
         final long timestamp;
+        final int score;
+        final int hp;
+        final boolean alive;
         
-        GameEndVote(String username, String reason, long timestamp) {
+        GameEndVote(String username, String reason, long timestamp, int score, int hp, boolean alive) {
             this.username = username;
             this.reason = reason;
             this.timestamp = timestamp;
+            this.score = score;
+            this.hp = hp;
+            this.alive = alive;
         }
 
         public String getUsername() { return username; }
         public String getReason() { return reason; }
         public long getTimestamp() { return timestamp; }
+        public int getScore() { return score; }
+        public int getHp() { return hp; }
+        public boolean isAlive() { return alive; }
     }
 }

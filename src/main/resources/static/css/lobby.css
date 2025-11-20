@@ -221,3 +221,204 @@ body {
     background: #f1c40f;
     color: #1b1b1b;
 }
+/* 🏆 排行榜样式 */
+.leaderboard-panel {
+    width: 320px;
+    background: linear-gradient(135deg, rgba(15, 25, 45, 0.98), rgba(25, 15, 45, 0.98));
+    border-radius: 16px;
+    border: 1px solid rgba(100, 200, 255, 0.3);
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.lb-header {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #00d9ff;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+/* 表头 */
+.lb-table-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #00d9ff;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.3);
+}
+
+.lb-table-header > div:nth-child(1) {
+    min-width: 50px;
+    text-align: center;
+}
+
+.lb-table-header > div:nth-child(2) {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.lb-table-header > div:nth-child(3) {
+    width: 120px;
+    text-align: right;
+}
+
+.lb-content {
+    max-height: 450px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.lb-loading {
+    text-align: center;
+    color: #a0b0c0;
+    font-size: 14px;
+    padding: 30px 0;
+}
+
+.lb-entry {
+    display: flex;
+    align-items: center;
+    padding: 12px 10px;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, rgba(30, 50, 80, 0.6), rgba(50, 30, 80, 0.6));
+    border-radius: 10px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.lb-entry::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #00d9ff, #7000ff);
+}
+
+.lb-entry:hover {
+    background: linear-gradient(90deg, rgba(40, 60, 100, 0.8), rgba(60, 40, 100, 0.8));
+    transform: translateX(2px);
+}
+
+.lb-entry.top1::before {
+    background: linear-gradient(180deg, #ffd700, #ffaa00);
+}
+
+.lb-entry.top2::before {
+    background: linear-gradient(180deg, #c0c0c0, #888888);
+}
+
+.lb-entry.top3::before {
+    background: linear-gradient(180deg, #cd7f32, #8b5a2b);
+}
+
+.lb-rank {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffaa60;
+    min-width: 50px;
+    text-align: center;
+    font-family: 'Arial Black', sans-serif;
+}
+
+.lb-rank.top1 {
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+.lb-rank.top2 {
+    color: #c0c0c0;
+    text-shadow: 0 0 15px rgba(192, 192, 192, 0.6);
+}
+
+.lb-rank.top3 {
+    color: #cd7f32;
+    text-shadow: 0 0 15px rgba(205, 127, 50, 0.6);
+}
+
+.lb-info {
+    flex: 1;
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lb-username {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e5f0ff;
+}
+
+.lb-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lb-score-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width: 120px;
+}
+
+.lb-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: #00ff88;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+}
+
+.lb-games {
+    font-size: 11px;
+    color: #8899aa;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.lb-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.lb-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff9f3d, #ffdd00);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px rgba(255, 159, 61, 0.6);
+}
+
+.lb-progress-fill.top1 {
+    background: linear-gradient(90deg, #ffd700, #ffaa00);
+}
+
+.lb-progress-fill.top2 {
+    background: linear-gradient(90deg, #c0c0c0, #888888);
+}
+
+.lb-progress-fill.top3 {
+    background: linear-gradient(90deg, #cd7f32, #ff9f4d);
+}
+
+.lb-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
